@@ -20,6 +20,10 @@ class TemplateCreated
     public function __construct(NotificationTemplate $template)
     {
         $this->template = $template;
+        info("EVENT DISPATCHED FROM TemplateCreated", [
+            'template_id' => $template->id,
+            'time' => now()->toDateTimeString(),
+        ]);
     }
 
     /**
