@@ -9,6 +9,5 @@ class NotificationTemplate extends Model
 {
     use HasFactory;
 
-    // اجازه به Mass Assignment برای این ستون‌ها
     protected $fillable = ['key', 'subject', 'body'];
 }
