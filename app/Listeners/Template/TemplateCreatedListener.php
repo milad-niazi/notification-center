@@ -8,12 +8,11 @@ use App\Services\Notification\NotificationService;
 
 class TemplateCreatedListener
 {
-    protected NotificationService $service;
+    protected NotificationService $notificationService;
 
-    public function __construct()
+    public function __construct(NotificationService $notificationService)
     {
-        Log::channel('notification')->info("CONSTRUCTOR");
-        $this->service = new NotificationService();
+        $this->notificationService = $notificationService;
     }
 
     public function handle(TemplateCreated $event)
@@ -27,7 +26,7 @@ class TemplateCreatedListener
         ]);
 
         try {
-            $this->service->send(
+            $this->notificationService->send(
                 "email",
                 $template->key,
                 "milad@example.com",
