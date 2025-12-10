@@ -1,59 +1,124 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Notification Center
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel-based notification system demonstrating **Event-Driven Architecture**, **Repository Pattern**, and **Advanced Logging**.
+This project provides a clean structure for managing **notification templates** and sending notifications via different channels like email.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Core Features
+- **CRUD for Notification Templates**
+  Create, read, update, and delete notification templates with placeholders (e.g., `{{name}}`).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Event-Driven Notifications**
+  - Events: `TemplateCreated`, `TemplateUpdated`, `TemplateDeleted`
+  - Listeners handle sending notifications and logging automatically.
 
-## Learning Laravel
+- **Notification Service**
+  Centralized service to send notifications via multiple channels (email implemented).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- **Advanced Logging**
+  - Dedicated `notification` channel in `storage/logs/notification.log`
+  - Logs include context: template ID, template key, recipient, timestamp.
+  - Logs both successes and failures for better debugging.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+### Tech Stack
+- Laravel 12
+- PHP 8.2
+- MySQL / SQLite (any relational DB)
+- Postman for API testing
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## Folder Structure Highlights
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+app/
+├── Events/ # Event definitions
+├── Listeners/ # Event listeners (notification logic)
+├── Repositories/ # DB logic separated from controllers
+├── Services/ # NotificationService
+└── Http/Controllers/Api/TemplateController.php
 
-## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## API Endpoints
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Base URL: `/api`
 
-## Security Vulnerabilities
+| Method | Endpoint              | Description                 |
+|--------|---------------------|-----------------------------|
+| GET    | `/templates`        | List all templates          |
+| GET    | `/templates/{id}`   | Get template by ID          |
+| POST   | `/templates`        | Create new template         |
+| PUT    | `/templates/{id}`   | Update existing template    |
+| DELETE | `/templates/{id}`   | Delete template             |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Sample Payloads
 
-## License
+**Create Template**
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```json
+{
+  "key": "welcome",
+  "subject": "Welcome Aboard!",
+  "body": "Hello {{name}}, welcome to our awesome system!"
+}
+
+Update Template
+
+{
+  "subject": "Welcome to Our Platform!"
+}
+
+Logging
+
+Log file: storage/logs/notification.log
+
+Example log entries:
+
+{
+  "template_id": 1,
+  "template_key": "welcome",
+  "time": "2025-12-10T23:34:09",
+  "status": "Notification sent successfully"
+}
+
+Installation
+
+Clone the repository:
+
+git clone https://github.com/your-username/notification-center.git
+cd notification-center
+
+
+Install dependencies:
+
+bash
+composer install
+Configure environment:
+
+bash
+cp .env.example .env
+php artisan key:generate
+Run migrations:
+
+bash
+php artisan migrate
+Start the server:
+
+bash
+php artisan serve
+
+Why this Project is Useful
+
+Demonstrates clean architecture with Repositories and Event/Listener pattern.
+
+Logging is detailed and structured, making debugging easier.
+
+Can be extended to multiple channels: email, SMS, push notifications.
+
+Perfect showcase for working with Laravel, notifications, and event-driven systems.
