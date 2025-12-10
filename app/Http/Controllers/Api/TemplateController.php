@@ -45,9 +45,7 @@ class TemplateController extends ApiController
         ]);
 
         $template = $this->repo->create($data);
-        Log::channel('notification')->info("Before Event");
         event(new TemplateCreated($template));
-        Log::channel('notification')->info("After Event");
         return $this->successResponse(new NotificationTemplateResource($template), 201);
     }
 
