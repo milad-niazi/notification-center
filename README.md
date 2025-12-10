@@ -1,124 +1,192 @@
 # Notification Center
 
-A Laravel-based notification system demonstrating **Event-Driven Architecture**, **Repository Pattern**, and **Advanced Logging**.
-This project provides a clean structure for managing **notification templates** and sending notifications via different channels like email.
+A Laravel-based notification system demonstrating the use of **Events, Listeners, Repositories, Resources, and Logging**. This project is designed for educational purposes and as a **portfolio sample**.
 
 ---
 
 ## Features
 
-### Core Features
-- **CRUD for Notification Templates**
-  Create, read, update, and delete notification templates with placeholders (e.g., `{{name}}`).
+-   **Notification Templates**
 
-- **Event-Driven Notifications**
-  - Events: `TemplateCreated`, `TemplateUpdated`, `TemplateDeleted`
-  - Listeners handle sending notifications and logging automatically.
+    -   Create, update, delete, and view notification templates via API.
+    -   Templates include a `key`, `subject`, and `body`.
+    -   Supports dynamic placeholders (e.g., `{{name}}`) for personalized notifications.
 
-- **Notification Service**
-  Centralized service to send notifications via multiple channels (email implemented).
+-   **Event-driven Notifications**
 
-- **Advanced Logging**
-  - Dedicated `notification` channel in `storage/logs/notification.log`
-  - Logs include context: template ID, template key, recipient, timestamp.
-  - Logs both successes and failures for better debugging.
+    -   Trigger events on template creation, update, or deletion.
+    -   Listeners handle sending notifications via `NotificationService`.
+    -   Logs every action for monitoring and debugging.
+
+-   **Logging**
+
+    -   Comprehensive logging for:
+
+        -   Event firing
+        -   Notification sending success/failure
+
+    -   Supports custom log channels.
+    -   Includes context (template key, ID, timestamp) for easier debugging.
+
+-   **Repository Pattern**
+
+    -   All database interactions are encapsulated in the repository layer.
+    -   Keeps controllers clean and maintainable.
+
+-   **API Responses**
+
+    -   Standardized responses using `ApiController` and API Resources.
+    -   Consistent success and error messages.
 
 ---
 
-### Tech Stack
-- Laravel 12
-- PHP 8.2
-- MySQL / SQLite (any relational DB)
-- Postman for API testing
+## Installation
 
----
+1. Clone the repository:
 
-## Folder Structure Highlights
+```bash
+git clone https://github.com/yourusername/notification-center.git
+cd notification-center
+```
 
-app/
-├── Events/ # Event definitions
-├── Listeners/ # Event listeners (notification logic)
-├── Repositories/ # DB logic separated from controllers
-├── Services/ # NotificationService
-└── Http/Controllers/Api/TemplateController.php
+2. Install dependencies:
 
+```bash
+composer install
+```
+
+3. Copy the environment file and configure:
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+4. Set database credentials in `.env`.
+
+5. Run migrations:
+
+```bash
+php artisan migrate
+```
 
 ---
 
 ## API Endpoints
 
-Base URL: `/api`
+| Method | Endpoint              | Description                     |
+| ------ | --------------------- | ------------------------------- |
+| GET    | `/api/templates`      | List all notification templates |
+| GET    | `/api/templates/{id}` | View a single template          |
+| POST   | `/api/templates`      | Create a new template           |
+| PUT    | `/api/templates/{id}` | Update an existing template     |
+| DELETE | `/api/templates/{id}` | Delete a template               |
 
-| Method | Endpoint              | Description                 |
-|--------|---------------------|-----------------------------|
-| GET    | `/templates`        | List all templates          |
-| GET    | `/templates/{id}`   | Get template by ID          |
-| POST   | `/templates`        | Create new template         |
-| PUT    | `/templates/{id}`   | Update existing template    |
-| DELETE | `/templates/{id}`   | Delete template             |
-
-### Sample Payloads
-
-**Create Template**
+**Example POST Request (Create Template)**
 
 ```json
+POST /api/templates
 {
   "key": "welcome",
   "subject": "Welcome Aboard!",
   "body": "Hello {{name}}, welcome to our awesome system!"
 }
+```
 
-Update Template
+---
 
-{
-  "subject": "Welcome to Our Platform!"
-}
+## Events & Listeners
 
-Logging
+-   **Events**
 
-Log file: storage/logs/notification.log
+    -   `TemplateCreated`
+    -   `TemplateUpdated`
+    -   `TemplateDeleted`
 
-Example log entries:
+-   **Listeners**
 
-{
-  "template_id": 1,
-  "template_key": "welcome",
-  "time": "2025-12-10T23:34:09",
-  "status": "Notification sent successfully"
-}
+    -   `TemplateCreatedListener`
+    -   `TemplateUpdatedListener`
+    -   `TemplateDeletedListener`
 
-Installation
+> Listeners handle sending notifications and logging.
 
-Clone the repository:
+**Flow:**
 
-git clone https://github.com/your-username/notification-center.git
-cd notification-center
+1. Controller triggers an event (e.g., on template creation).
+2. Listener reacts to the event:
 
+    - Sends notification via `NotificationService`.
+    - Logs the event and the notification status.
 
-Install dependencies:
+---
 
-bash
-composer install
-Configure environment:
+## Logging
 
-bash
-cp .env.example .env
-php artisan key:generate
-Run migrations:
+-   **Channels**
 
-bash
-php artisan migrate
-Start the server:
+    -   Custom `notification` channel configured in `config/logging.php`.
 
-bash
-php artisan serve
+-   **Levels**
 
-Why this Project is Useful
+    -   `info`: General actions and event triggers
+    -   `warning`: Non-critical issues
+    -   `error`: Failures in sending notifications
+    -   `debug`: Template content and context for troubleshooting
 
-Demonstrates clean architecture with Repositories and Event/Listener pattern.
+**Example Log Entry:**
 
-Logging is detailed and structured, making debugging easier.
+```
+[2025-12-10 23:32:37] local.INFO: TemplateCreated event fired {"template_id":27,"template_key":"welcome","time":"2025-12-10 23:32:37"}
+[2025-12-10 23:32:37] local.INFO: Notification sent successfully {"template_key":"welcome"}
+```
 
-Can be extended to multiple channels: email, SMS, push notifications.
+---
 
-Perfect showcase for working with Laravel, notifications, and event-driven systems.
+## Testing
+
+-   Use **Postman** or any API client to interact with endpoints.
+-   Verify logs in `storage/logs/laravel.log` to confirm events and notifications are firing.
+-   Ensure the `notification` log channel is set correctly for event listener logging.
+
+---
+
+## Repository & Service Structure
+
+```
+app/
+├─ Events/
+│  ├─ TemplateCreated.php
+│  ├─ TemplateUpdated.php
+│  └─ TemplateDeleted.php
+├─ Listeners/
+│  └─ Template/
+│     ├─ TemplateCreatedListener.php
+│     ├─ TemplateUpdatedListener.php
+│     └─ TemplateDeletedListener.php
+├─ Repositories/
+│  └─ NotificationTemplateRepository.php
+├─ Http/
+│  └─ Controllers/Api/
+│     └─ TemplateController.php
+├─ Resources/
+│  └─ NotificationTemplateResource.php
+├─ Services/
+│  └─ Notification/
+│     └─ NotificationService.php
+```
+
+---
+
+## Notes
+
+-   This project demonstrates **event-driven architecture** in Laravel.
+-   Logging every action helps in **debugging and monitoring**.
+-   Repository pattern keeps database logic separate from controllers.
+-   API Resources provide a consistent response structure.
+
+---
+
+## License
+
+This project is open-source and available under the [MIT License](LICENSE).
