@@ -4,21 +4,15 @@ namespace App\Listeners\Template;
 
 use App\Events\TemplateDeleted;
 use Illuminate\Support\Facades\Log;
-use App\Services\Notification\NotificationService;
+use App\Jobs\SendNotificationJob;
 
 class TemplateDeletedListener
 {
-    protected NotificationService $service;
-
-    public function __construct()
-    {
-        $this->service = new NotificationService();
-    }
-
     public function handle(TemplateDeleted $event)
     {
         $template = $event->template;
 
+        // Log event fired
         Log::channel('notification')->info("TemplateDeleted event fired", [
             'template_id' => $template->id,
             'template_key' => $template->key,
@@ -26,18 +20,19 @@ class TemplateDeletedListener
         ]);
 
         try {
-            $this->service->send(
-                "email",
-                $template->key,
-                "milad@example.com",
-                ["name" => "Milad"]
+            // Dispatch Job async با fallback
+            SendNotificationJob::dispatch(
+                ['email', 'sms', 'push'], // آرایه کانال‌ها
+                $template->key,           // templateKey
+                'milad@example.com',      // recipient
+                ['name' => 'Milad']       // data برای template parsing
             );
 
-            Log::channel('notification')->info("Notification for delete sent successfully", [
+            Log::channel('notification')->info("Notification Job for delete dispatched successfully", [
                 'template_key' => $template->key,
             ]);
         } catch (\Exception $e) {
-            Log::channel('notification')->error("Notification for delete failed", [
+            Log::channel('notification')->error("Failed to dispatch Notification Job for delete", [
                 'template_key' => $template->key,
                 'error' => $e->getMessage(),
             ]);

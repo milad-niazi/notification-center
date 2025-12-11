@@ -4,21 +4,15 @@ namespace App\Listeners\Template;
 
 use App\Events\TemplateUpdated;
 use Illuminate\Support\Facades\Log;
-use App\Services\Notification\NotificationService;
+use App\Jobs\SendNotificationJob;
 
 class TemplateUpdatedListener
 {
-    protected NotificationService $service;
-
-    public function __construct()
-    {
-        $this->service = new NotificationService();
-    }
-
     public function handle(TemplateUpdated $event)
     {
         $template = $event->template;
 
+        // Log event fired
         Log::channel('notification')->info("TemplateUpdated event fired", [
             'template_id' => $template->id,
             'template_key' => $template->key,
@@ -26,18 +20,19 @@ class TemplateUpdatedListener
         ]);
 
         try {
-            $this->service->send(
-                "email",
-                $template->key,
-                "milad@example.com",
-                ["name" => "Milad"]
+            // Dispatch Job async با fallback
+            SendNotificationJob::dispatch(
+                ['email', 'sms', 'push'], // آرایه کانال‌ها
+                $template->key,           // templateKey
+                'milad@example.com',      // recipient
+                ['name' => 'Milad']       // data برای template parsing
             );
 
-            Log::channel('notification')->info("Notification for update sent successfully", [
+            Log::channel('notification')->info("Notification Job for update dispatched successfully", [
                 'template_key' => $template->key,
             ]);
         } catch (\Exception $e) {
-            Log::channel('notification')->error("Notification for update failed", [
+            Log::channel('notification')->error("Failed to dispatch Notification Job for update", [
                 'template_key' => $template->key,
                 'error' => $e->getMessage(),
             ]);

@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Jobs\SendNotificationJob;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\NotificationResource;
 use App\Services\Notification\NotificationService;
+use App\Http\Resources\NotificationTemplateResource;
+use App\Services\Notification\Template\TemplateLoader;
 
 class NotificationController extends Controller
 {
@@ -18,21 +22,23 @@ class NotificationController extends Controller
     public function send(Request $request)
     {
         $request->validate([
-            'channel' => 'required|string|in:email,sms,push',
+            'channels' => 'required|array',
+            'channels.*' => 'in:email,sms,push',
             'template' => 'required|string',
             'recipient' => 'required|string',
             'data' => 'nullable|array',
         ]);
 
-        $success = $this->service->send(
-            $request->channel,
+        $template = TemplateLoader::load($request->template);
+
+        // Dispatch async Job
+        SendNotificationJob::dispatch(
+            $request->channels,
             $request->template,
             $request->recipient,
             $request->data ?? []
         );
 
-        return response()->json([
-            'success' => $success
-        ]);
+        return $this->successResponse(new NotificationResource($template), 201);
     }
 }

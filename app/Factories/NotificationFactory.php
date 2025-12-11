@@ -11,11 +11,11 @@ class NotificationFactory
 {
     public static function make(string $type): NotificationChannel
     {
-        return match ($type) {
+        return match($type) {
             'email' => new EmailChannel(),
-            'sms' => new SmsChannel(),
-            'push' => new PushChannel(),
-            default => throw new \Exception("Invalid channel: $type")
+            'sms'   => new SMSChannel(),
+            'push'  => new PushChannel(),
+            default => throw new \Exception("Notification type [$type] not supported")
         };
     }
 }
