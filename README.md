@@ -1,6 +1,7 @@
 # Notification Center
 
-A Laravel-based notification system demonstrating the use of **Events, Listeners, Repositories, Resources, and Logging**. This project is designed for educational purposes and as a **portfolio sample**.
+A **Laravel-based notification system** demonstrating the use of **Events, Listeners, Repositories, Resources, Jobs, and Logging**.
+This project is designed for educational purposes and as a **portfolio-ready sample**.
 
 ---
 
@@ -8,35 +9,47 @@ A Laravel-based notification system demonstrating the use of **Events, Listeners
 
 -   **Notification Templates**
 
-    -   Create, update, delete, and view notification templates via API.
-    -   Templates include a `key`, `subject`, and `body`.
-    -   Supports dynamic placeholders (e.g., `{{name}}`) for personalized notifications.
+    -   Create, update, delete, and view notification templates via API
+    -   Templates include `key`, `subject`, and `body`
+    -   Supports **dynamic placeholders** (e.g., `{{name}}`, `{{order_id}}`) for personalized notifications
 
 -   **Event-driven Notifications**
 
-    -   Trigger events on template creation, update, or deletion.
-    -   Listeners handle sending notifications via `NotificationService`.
-    -   Logs every action for monitoring and debugging.
+    -   Trigger events on template creation, update, or deletion
+    -   **Listeners now dispatch notifications asynchronously** via **Laravel Jobs/Queue**
+    -   Logs every action for monitoring and debugging
+
+-   **Multiple Channels**
+
+    -   **Email**, **SMS**, **Push notifications**
+    -   **Fallback mechanism**: if sending fails on one channel, next channel in list is attempted
+
+-   **Dynamic Placeholders**
+
+    -   `TemplateParser` replaces placeholders with real data
+    -   Example: `"Hello {{name}}" → "Hello Milad"`
+
+-   **Async Jobs & Queue**
+
+    -   Notifications are sent in background using **Laravel Jobs**
+    -   Retry attempts controlled (`$tries`)
+    -   Graceful fail handling with logging
 
 -   **Logging**
 
-    -   Comprehensive logging for:
-
-        -   Event firing
-        -   Notification sending success/failure
-
-    -   Supports custom log channels.
-    -   Includes context (template key, ID, timestamp) for easier debugging.
+    -   Custom `notification` log channel in `config/logging.php`
+    -   Logs include context: template key, recipient, channels, timestamp
+    -   Levels: `info`, `error`, `debug`
 
 -   **Repository Pattern**
 
-    -   All database interactions are encapsulated in the repository layer.
-    -   Keeps controllers clean and maintainable.
+    -   Notifications and logs stored via **NotificationLogRepository**
+    -   Keeps service layer clean and maintainable
 
--   **API Responses**
+-   **API Responses & Resources**
 
-    -   Standardized responses using `ApiController` and API Resources.
-    -   Consistent success and error messages.
+    -   Standardized JSON response using `NotificationResource`
+    -   Returns **dispatched notification info** (`recipient`, `channels`, `status`, `templateKey`)
 
 ---
 
@@ -55,7 +68,7 @@ cd notification-center
 composer install
 ```
 
-3. Copy the environment file and configure:
+3. Copy the environment file and generate app key:
 
 ```bash
 cp .env.example .env
@@ -70,6 +83,12 @@ php artisan key:generate
 php artisan migrate
 ```
 
+6. Start the queue worker (for async notifications):
+
+```bash
+php artisan queue:work
+```
+
 ---
 
 ## API Endpoints
@@ -81,8 +100,11 @@ php artisan migrate
 | POST   | `/api/templates`      | Create a new template           |
 | PUT    | `/api/templates/{id}` | Update an existing template     |
 | DELETE | `/api/templates/{id}` | Delete a template               |
+| POST   | `/api/notifications`  | Dispatch notification(s)        |
 
-**Example POST Request (Create Template)**
+---
+
+### Example: Create Template
 
 ```json
 POST /api/templates
@@ -90,6 +112,42 @@ POST /api/templates
   "key": "welcome",
   "subject": "Welcome Aboard!",
   "body": "Hello {{name}}, welcome to our awesome system!"
+}
+```
+
+---
+
+### Example: Dispatch Notification (Multi-channel)
+
+```json
+POST /api/notifications
+{
+  "channels": ["email", "sms"],
+  "template": "welcome",
+  "recipient": "milad@example.com",
+  "data": {
+    "name": "Milad",
+    "order_id": 1234
+  }
+}
+```
+
+**Response Example**
+
+```json
+{
+    "success": true,
+    "message": "Notification dispatched!",
+    "notification": {
+        "recipient": "milad@example.com",
+        "templateKey": "welcome",
+        "channels": ["email", "sms"],
+        "status": "pending",
+        "data": {
+            "name": "Milad",
+            "order_id": 1234
+        }
+    }
 }
 ```
 
@@ -109,45 +167,25 @@ POST /api/templates
     -   `TemplateUpdatedListener`
     -   `TemplateDeletedListener`
 
-> Listeners handle sending notifications and logging.
+**Flow**:
 
-**Flow:**
+1. Controller triggers an event (e.g., template creation)
+2. Listener reacts:
 
-1. Controller triggers an event (e.g., on template creation).
-2. Listener reacts to the event:
-
-    - Sends notification via `NotificationService`.
-    - Logs the event and the notification status.
+    - Dispatches **SendNotificationJob** to queue
+    - Logs the event and notification status
 
 ---
 
 ## Logging
 
--   **Channels**
-
-    -   Custom `notification` channel configured in `config/logging.php`.
-
--   **Levels**
-
-    -   `info`: General actions and event triggers
-    -   `warning`: Non-critical issues
-    -   `error`: Failures in sending notifications
-    -   `debug`: Template content and context for troubleshooting
-
-**Example Log Entry:**
+-   Custom `notification` channel in `config/logging.php`
+-   **Example Log Entries**:
 
 ```
-[2025-12-10 23:32:37] local.INFO: TemplateCreated event fired {"template_id":27,"template_key":"welcome","time":"2025-12-10 23:32:37"}
-[2025-12-10 23:32:37] local.INFO: Notification sent successfully {"template_key":"welcome"}
+[2025-12-11 12:45:12] notification.INFO: Notification sent successfully {"recipient":"milad@example.com","channels":["email","sms"],"template_key":"welcome"}
+[2025-12-11 12:46:03] notification.ERROR: Notification failed on all channels {"recipient":"milad@example.com","channels":["email","sms"],"template_key":"welcome"}
 ```
-
----
-
-## Testing
-
--   Use **Postman** or any API client to interact with endpoints.
--   Verify logs in `storage/logs/laravel.log` to confirm events and notifications are firing.
--   Ensure the `notification` log channel is set correctly for event listener logging.
 
 ---
 
@@ -166,27 +204,39 @@ app/
 │     └─ TemplateDeletedListener.php
 ├─ Repositories/
 │  └─ NotificationTemplateRepository.php
+│  └─ NotificationLogRepository.php
 ├─ Http/
 │  └─ Controllers/Api/
 │     └─ TemplateController.php
+│     └─ NotificationController.php
 ├─ Resources/
 │  └─ NotificationTemplateResource.php
+│  └─ NotificationResource.php
+├─ Jobs/
+│  └─ SendNotificationJob.php
 ├─ Services/
 │  └─ Notification/
-│     └─ NotificationService.php
+│     ├─ NotificationService.php
+│     ├─ Template/TemplateLoader.php
+│     └─ Template/TemplateParser.php
+├─ Services/Notification/Channels/
+│  ├─ EmailChannel.php
+│  ├─ SmsChannel.php
+│  └─ PushChannel.php
 ```
 
 ---
 
 ## Notes
 
--   This project demonstrates **event-driven architecture** in Laravel.
--   Logging every action helps in **debugging and monitoring**.
--   Repository pattern keeps database logic separate from controllers.
--   API Resources provide a consistent response structure.
+-   Demonstrates **event-driven architecture**, **async jobs**, **multi-channel notifications**, **fallback**
+-   Logging every action helps in **debugging and monitoring**
+-   Repository pattern keeps database logic separate from controllers
+-   API Resources provide a **consistent response structure**
+-   Dynamic placeholders allow **personalized notifications**
 
 ---
 
 ## License
 
-This project is open-source and available under the [MIT License](LICENSE).
+This project is open-source and available under the MIT License.
